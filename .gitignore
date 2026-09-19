@@ -1,6 +1,12 @@
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 .pytest_cache/
 *.py[cod]
-
+*.log
+*.session
+*.session-journal
+*.session-wal
+*.session-shm

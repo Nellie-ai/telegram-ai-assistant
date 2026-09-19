@@ -52,3 +52,29 @@ PROFILE_PROMPTS={"OWNER":"Answer the owner briefly and precisely."}
 ```powershell
 pytest
 ```
+
+## Stage 2: user-account listener
+
+Stage 2 запускается отдельным процессом через Telethon и не использует BotFather token. Listener принимает только входящие личные сообщения обычного Telegram-аккаунта. Группы, каналы, service messages, исходящие сообщения, сообщения владельца и события без `sender_id` отбрасываются до policy router.
+
+Текущая реализация принудительно работает только при `DRY_RUN=true`: она вычисляет `PASS_THROUGH`, `WOULD_REPLY` или `WOULD_BLOCK` и пишет безопасные метаданные решения в лог. Текст сообщения, полный `sender_id`, API hash и session credentials не логируются. LLM, отправка сообщений и блокировка пользователей на Stage 2 не вызываются.
+
+Настройки listener находятся в отдельной секции `.env.example`. Списки ID задаются JSON-массивами. После заполнения тестовыми или рабочими значениями запуск выполняется отдельно:
+
+```powershell
+telegram-user-listener
+```
+
+При первом физическом запуске listener запросит телефон, код и при необходимости 2FA через скрытый ввод, затем создаст локальный session-файл. Авторизация требует интерактивного терминала. До регистрации обработчика listener проверяет, что сессия принадлежит `OWNER_USER_ID` и не является bot account. Файлы `*.session` и `*.session-journal` исключены из Git.
+
+Матрица policy:
+
+| Sender | Action | Profile |
+|---|---|---|
+| владелец / собственное сообщение | событие игнорируется | — |
+| `CLOSE_RELATIVE_IDS` | `PASS_THROUGH` | `CLOSE_RELATIVE` |
+| `DINESH_DOMESTIC_ID` | `WOULD_REPLY` | `DINESH_DOMESTIC` |
+| `DINESH_DEBT_ID`, долг не оплачен | `WOULD_BLOCK` | `DINESH_DEBT` |
+| `DINESH_DEBT_ID`, долг оплачен | `WOULD_REPLY` | `DINESH_DEBT_PAID_PROFILE` |
+| `BLOCKLIST_IDS` | `WOULD_BLOCK` | `BLOCKLIST` |
+| остальные | `WOULD_REPLY` | `DEFAULT` |
