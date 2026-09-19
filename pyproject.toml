@@ -12,6 +12,7 @@ dependencies = [
     "aiogram==3.31.0",
     "httpx>=0.27,<1",
     "pydantic-settings>=2.5,<3",
+    "Telethon==1.45.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +20,7 @@ dev = ["pytest>=8.3,<9"]
 
 [project.scripts]
 telegram-llm-bot = "telegram_llm_bot.__main__:run"
+telegram-user-listener = "telegram_llm_bot.user_account.__main__:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/telegram_llm_bot"]
