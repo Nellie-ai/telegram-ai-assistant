@@ -1,0 +1,44 @@
+name: Isolated tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -e '.[dev]'
+      - name: Compile project
+        run: .venv/bin/python -m compileall -q src tests
+      - name: Run tests without network access
+        # No bot/listener entrypoint, credentials, .env, Telegram or LLM calls.
+        # Only dependency installation above needs network access.
+        run: sudo -n unshare --net -- .venv/bin/python -m pytest -q --junitxml=test-results.xml
+      - name: Upload test summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: isolated-test-results
+          path: test-results.xml
+          if-no-files-found: warn
+          retention-days: 7
